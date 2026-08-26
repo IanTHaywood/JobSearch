@@ -1,0 +1,7 @@
+.env
+882a8d3a-985a-4f91-b120-0213943702d4
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info/
