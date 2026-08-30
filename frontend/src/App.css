@@ -87,6 +87,21 @@ thead th {
   font-size: 0.85rem;
 }
 
+.usage-row {
+  display: flex;
+  gap: 0.75rem;
+  margin: 0.5rem 0 1rem;
+  flex-wrap: wrap;
+}
+
+.usage-pill {
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  padding: 0.2rem 0.75rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
 .error {
   color: var(--error);
 }

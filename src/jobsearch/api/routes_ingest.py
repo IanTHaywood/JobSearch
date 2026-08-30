@@ -1,7 +1,8 @@
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
 
 from jobsearch.api.scheduler import RUNS_COLLECTION, run_connector_job
-from jobsearch.api.schemas import ConnectorInfo, RunOut, RunStarted
+from jobsearch.api.schemas import ConnectorInfo, ConnectorUsage, RunOut, RunStarted
+from jobsearch.api_usage import calls_used_today, get_daily_cap
 from jobsearch.db import get_db
 from jobsearch.ingest.registry import CONNECTORS
 
@@ -11,6 +12,18 @@ router = APIRouter(prefix="/api/ingest", tags=["ingest"])
 @router.get("/connectors", response_model=list[ConnectorInfo])
 def list_connectors() -> list[ConnectorInfo]:
     return [ConnectorInfo(name=name) for name in CONNECTORS]
+
+
+@router.get("/usage", response_model=list[ConnectorUsage])
+def list_usage() -> list[ConnectorUsage]:
+    return [
+        ConnectorUsage(
+            connector=name,
+            calls_used_today=calls_used_today(name),
+            daily_cap=get_daily_cap(name),
+        )
+        for name in CONNECTORS
+    ]
 
 
 @router.post("/run/{connector_name}", response_model=RunStarted)

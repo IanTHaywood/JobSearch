@@ -12,7 +12,10 @@ LISTINGS_COLLECTION = "listings"
 
 @lru_cache
 def get_client() -> MongoClient:
-    return MongoClient(os.environ["MONGO_URI"])
+    # tz_aware so datetimes read back from Mongo are UTC-aware, matching
+    # the datetime.now(timezone.utc) values the app writes — otherwise
+    # comparing a stored value against a fresh aware datetime raises.
+    return MongoClient(os.environ["MONGO_URI"], tz_aware=True)
 
 
 def get_db() -> Database:

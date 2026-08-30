@@ -1,5 +1,6 @@
 import type {
   ConnectorInfo,
+  ConnectorUsage,
   CronJob,
   Listing,
   ListingsPage,
@@ -22,18 +23,26 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const api = {
-  listListings: (page: number, pageSize: number, source?: string) => {
+  listListings: (
+    page: number,
+    pageSize: number,
+    source?: string,
+    hideStale?: boolean,
+  ) => {
     const params = new URLSearchParams({
       page: String(page),
       page_size: String(pageSize),
     })
     if (source) params.set('source', source)
+    if (hideStale) params.set('hide_stale', 'true')
     return request<ListingsPage>(`/api/listings?${params}`)
   },
 
   listSources: () => request<string[]>('/api/listings/sources'),
 
   listConnectors: () => request<ConnectorInfo[]>('/api/ingest/connectors'),
+
+  listUsage: () => request<ConnectorUsage[]>('/api/ingest/usage'),
 
   runConnector: (name: string) =>
     request<RunStarted>(`/api/ingest/run/${encodeURIComponent(name)}`, {

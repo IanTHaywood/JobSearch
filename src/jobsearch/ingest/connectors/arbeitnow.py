@@ -1,4 +1,5 @@
 import time
+from datetime import datetime, timezone
 from typing import Iterable
 
 import requests
@@ -46,3 +47,15 @@ class ArbeitnowConnector(Connector):
 
     def source_id(self, raw: dict) -> str:
         return raw["slug"]
+
+    def normalize(self, raw: dict) -> dict:
+        posted_at = None
+        created_at = raw.get("created_at")
+        if created_at:
+            posted_at = datetime.fromtimestamp(created_at, tz=timezone.utc)
+        return {
+            "title": raw.get("title"),
+            "company": raw.get("company_name"),
+            "location": raw.get("location"),
+            "posted_at": posted_at,
+        }

@@ -1,9 +1,11 @@
 import os
 import time
+from datetime import datetime, timezone
 from typing import Iterable
 
 import requests
 
+from jobsearch.api_usage import record_call
 from jobsearch.ingest.base import Connector
 
 API_HOST = "jobs-api14.p.rapidapi.com"
@@ -21,6 +23,11 @@ class JobsAPI14Connector(Connector):
     """
 
     path: str
+    # RapidAPI calls are metered; stop paginating once this many
+    # consecutive already-seen listings come back, on the assumption the
+    # source returns newest-first so we've caught up to last run.
+    # See api_usage.py for the daily call cap itself.
+    early_stop_after_consecutive_seen: int | None = 25
 
     def initial_params(self) -> dict:
         return {}
@@ -40,6 +47,7 @@ class JobsAPI14Connector(Connector):
                 time.sleep(REQUEST_DELAY_SECONDS)
             first_request = False
 
+            record_call(self.name)  # raises DailyQuotaExceeded before firing
             response = requests.get(
                 f"{BASE_URL}{self.path}",
                 headers=self._headers(),
@@ -72,3 +80,17 @@ class JobsAPI14IndeedConnector(JobsAPI14Connector):
 
     def source_id(self, raw: dict) -> str:
         return raw["id"]
+
+    def normalize(self, raw: dict) -> dict:
+        posted_at = None
+        ts = raw.get("datePublishedTimestamp")
+        if ts:
+            posted_at = datetime.fromtimestamp(ts / 1000, tz=timezone.utc)
+        company = raw.get("company") or {}
+        location = raw.get("location") or {}
+        return {
+            "title": raw.get("title"),
+            "company": company.get("name"),
+            "location": location.get("location"),
+            "posted_at": posted_at,
+        }
