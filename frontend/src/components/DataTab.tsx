@@ -12,10 +12,13 @@ export function DataTab() {
   const [data, setData] = useState<ListingsPage | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // Bumped by the Refresh button to re-run the fetch effect below without
+  // changing page/source.
+  const [reloadToken, setReloadToken] = useState(0)
 
   useEffect(() => {
     api.listSources().then(setSources).catch(() => setSources([]))
-  }, [])
+  }, [reloadToken])
 
   // Reset to page 1 whenever the source filter changes.
   useEffect(() => {
@@ -40,7 +43,7 @@ export function DataTab() {
     return () => {
       cancelled = true
     }
-  }, [page, source])
+  }, [page, source, reloadToken])
 
   // Raw shape varies per source, so render one column per top-level raw
   // key seen on the current page rather than assuming a fixed schema.
@@ -68,6 +71,9 @@ export function DataTab() {
             ))}
           </select>
         </label>
+        <button onClick={() => setReloadToken((t) => t + 1)} disabled={loading}>
+          {loading ? 'Refreshing…' : 'Refresh'}
+        </button>
         {data && (
           <span className="muted">
             {data.total.toLocaleString()} listings
