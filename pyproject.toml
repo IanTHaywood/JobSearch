@@ -10,6 +10,9 @@ dependencies = [
     "pymongo>=4.8,<5",
     "python-dotenv>=1.0,<2",
     "requests>=2.31,<3",
+    "fastapi>=0.110,<1",
+    "uvicorn[standard]>=0.27,<1",
+    "apscheduler>=3.10,<4",
 ]
 
 [tool.setuptools.packages.find]
