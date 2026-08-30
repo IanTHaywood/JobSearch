@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api'
-import type { ConnectorInfo, CronJob, RunRecord } from '../types'
+import type { ConnectorInfo, ConnectorUsage, CronJob, RunRecord } from '../types'
 
 const RUN_POLL_MS = 5000
 
 export function ApiControlTab() {
   const [connectors, setConnectors] = useState<ConnectorInfo[]>([])
   const [selectedConnector, setSelectedConnector] = useState('')
+  const [usage, setUsage] = useState<ConnectorUsage[]>([])
   const [runs, setRuns] = useState<RunRecord[]>([])
   const [runError, setRunError] = useState<string | null>(null)
   const [triggering, setTriggering] = useState(false)
@@ -18,6 +19,9 @@ export function ApiControlTab() {
 
   const refreshRuns = () => {
     api.listRuns(20).then(setRuns).catch((err) => setRunError(String(err)))
+  }
+  const refreshUsage = () => {
+    api.listUsage().then(setUsage).catch(() => {})
   }
   const refreshCronJobs = () => {
     api.listCronJobs().then(setCronJobs).catch((err) => setCronError(String(err)))
@@ -33,7 +37,11 @@ export function ApiControlTab() {
     })
     refreshRuns()
     refreshCronJobs()
-    const interval = setInterval(refreshRuns, RUN_POLL_MS)
+    refreshUsage()
+    const interval = setInterval(() => {
+      refreshRuns()
+      refreshUsage()
+    }, RUN_POLL_MS)
     return () => clearInterval(interval)
   }, [])
 
@@ -44,7 +52,10 @@ export function ApiControlTab() {
     try {
       await api.runConnector(selectedConnector)
       // Give the background task a moment to at least start, then refresh.
-      setTimeout(refreshRuns, 500)
+      setTimeout(() => {
+        refreshRuns()
+        refreshUsage()
+      }, 500)
     } catch (err) {
       setRunError(String(err))
     } finally {
@@ -112,6 +123,17 @@ export function ApiControlTab() {
         </div>
         {runError && <p className="error">{runError}</p>}
 
+        <div className="usage-row">
+          {usage.map((u) => (
+            <span key={u.connector} className="usage-pill">
+              <strong>{u.connector}</strong>:{' '}
+              {u.daily_cap != null
+                ? `${u.calls_used_today} / ${u.daily_cap} calls today`
+                : `${u.calls_used_today} calls today (no cap set)`}
+            </span>
+          ))}
+        </div>
+
         <div className="table-scroll">
           <table>
             <thead>
@@ -129,7 +151,7 @@ export function ApiControlTab() {
                   <td>{run.connector}</td>
                   <td>{new Date(run.started_at).toLocaleString()}</td>
                   <td>{run.finished_at ? new Date(run.finished_at).toLocaleString() : '—'}</td>
-                  <td className={run.status === 'error' ? 'error' : ''}>{run.status}</td>
+                  <td className={run.status !== 'ok' ? 'error' : ''}>{run.status}</td>
                   <td>
                     {run.stats
                       ? `seen ${run.stats.seen}, inserted ${run.stats.inserted}, updated ${run.stats.updated}`

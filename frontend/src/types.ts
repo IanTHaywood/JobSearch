@@ -2,9 +2,14 @@ export interface Listing {
   id: string
   source: string
   source_id: string
+  title: string | null
+  company: string | null
+  location: string | null
+  posted_at: string | null
   raw: Record<string, unknown>
   ingested_at: string
   last_seen: string
+  stale: boolean
 }
 
 export interface ListingsPage {
@@ -27,9 +32,15 @@ export interface RunRecord {
   connector: string
   started_at: string
   finished_at: string | null
-  status: 'ok' | 'error'
+  status: 'ok' | 'error' | 'quota_exceeded'
   stats: { seen: number; inserted: number; updated: number } | null
   error: string | null
+}
+
+export interface ConnectorUsage {
+  connector: string
+  calls_used_today: number
+  daily_cap: number | null
 }
 
 export interface CronJob {

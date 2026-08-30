@@ -12,6 +12,7 @@ from functools import lru_cache
 from apscheduler.jobstores.mongodb import MongoDBJobStore
 from apscheduler.schedulers.background import BackgroundScheduler
 
+from jobsearch.api_usage import DailyQuotaExceeded
 from jobsearch.db import get_client, get_db
 from jobsearch.ingest.pipeline import run_connector
 from jobsearch.ingest.registry import CONNECTORS
@@ -49,6 +50,18 @@ def run_connector_job(connector_name: str) -> None:
                 "finished_at": datetime.now(timezone.utc),
                 "status": "ok",
                 "stats": stats,
+            }
+        )
+    except DailyQuotaExceeded as exc:
+        # Not a bug: the connector's daily call budget (api_usage.py) was
+        # already reached, so this run made zero requests.
+        runs.insert_one(
+            {
+                "connector": connector_name,
+                "started_at": started_at,
+                "finished_at": datetime.now(timezone.utc),
+                "status": "quota_exceeded",
+                "error": str(exc),
             }
         )
     except Exception as exc:
